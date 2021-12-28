@@ -1,10 +1,9 @@
-- 👋 Hi, I’m @zeptusg, my name is Daniel
-- 👀 I’m a highly motivated self-learner of computer science
-- 🌱 I’m currently learning Java DS & Algorithms
-- 💞️ I’m looking to contribute and learn
-- 📫 How to reach me - danielsvirsky2@gmail.com
+This is a project I made to sum up my assembly skills and learn it better.
+A simple maze with Menu and instructions. You can run it easily by compiling it and using dosbox to run it.
 
-<!---
-zeptusg/zeptusg is a ✨ special ✨ repository because its `README.md` (this file) appears on your GitHub profile.
-You can click the Preview link to take a look at your changes.
---->
+
+![mazeMenu](https://user-images.githubusercontent.com/94298211/147560711-3e2e1515-79a2-4326-a2f8-1a129d670296.png)
+
+--
+
+![mazeMaze](https://user-images.githubusercontent.com/94298211/147560745-d57df100-3429-4bfc-8fa5-e5826f0a7b97.png)
