@@ -1,0 +1,552 @@
+; multi-segment executable file template.
+
+data segment
+maze db '-----------------------------------------------------------------------------',13,10
+db '-                      -          -          -    -          - -            -',13,10
+db '------ --------------- -  ------- - -------- - ------------- - - - ---- -- --',13,10
+db '-  - - -      -----  - -  ---   -   ----  -- - -----  - -- - - ---  --- -- --',13,10
+db '--       --  --      -   -    -------    ---                        - -  -  -',13,10
+db '------------    ---- -------          -    ----------------------------------',13,10
+db '--   -  -  --------    -   ------------  -  -   -   -                      - ',13,10
+db '-                    -   -                -   -   -    ------------------ --',13,10
+db '-   ------------------------  --------------------------               -   -',13,10
+db '---  ---- -                    -                         --------------- - -',13,10
+db '-   -  - -  -------------------- -------------------  -   -   -   - - -   --',13,10
+db '--  -                            -                  -   -   -   --  - - ----',13,10
+db '-  ---- -------------------------- ------------------------------ -- -   - -',13,10
+db '-     -                            -                              -    -   -',13,10
+db '--- -----  ------------------------- - --------------------------   ----- --',13,10
+db '--   -  ---                          -        -                  ---    ----',13,10
+db '-  -   ------------- ---------------------- ---- -----------  --      - - --',13,10
+db '- - -             -                      -                   -  - - --    END',13,10
+db '-----------------------------------------------------------------------------$'
+
+Menu db '--------------------------------------------------------',13,10
+db '--                                                    --',13,10
+db '- -         Hello and welcome to "The Maze".         - -',13,10
+db '-                                                      -',13,10
+db '-                    Press a key                       -',13,10
+db '-                                                      -',13,10
+db '-                                                      -',13,10
+db '-    you can press (m) anytime to get back to the menu -',13,10
+db '-                                                      -',13,10
+db '-                   (s) to start                       -',13,10
+db '-                   (i) for instructions               -',13,10
+db '-                   (q) to quit                        -',13,10
+db '-                                                      -',13,10
+db '-                                                      -',13,10
+db '- -                                                  - -',13,10
+db '--                                                    --',13,10
+db '--------------------------------------------------------$'
+
+Instructions db '-------------------------------------------------------',13,10
+db '--                                                   --',13,10
+db '-          Hey there.                                 -',13,10
+db '-          Welcome to "The Maze"                      -',13,10
+db '-          In order to get out of the maze            -',13,10
+db '-          you will need to find the way to           -',13,10
+db '-          the exit.                                  -',13,10
+db '-            Moving commands:                         -',13,10
+db '-            (w) to move up, (s) to move down         -',13,10
+db '-            (a) to move left, (d) to move right.     -',13,10
+db '-                                                     -',13,10
+db '-     Press M to get to the menu, S to start          -',13,10
+db '-     or Q to quit.                                   -',13,10
+db '--                                                   --',13,10
+db '-------------------------------------------------------$',13,10
+
+row db 1
+column db 1
+quitting db "are you sure you want to quit(y/n)?$"
+winning db "congratulations, you have passed the maze",13,10
+db "you can press (m) to get back to the menu or (q) to quit$"
+
+tik dw 0
+ends
+
+stack segment
+dw   128  dup(0)
+ends
+
+code segment
+
+;*********************************************
+;*            putting textmode               *
+;*                                           *
+;*                 80*25                     *
+;*                                           *
+;*********************************************
+proc textmode
+pusha
+mov al, 03h
+mov ah, 0
+int 10H
+popa
+ret
+endp textmode
+
+;*********************************************
+;*     Prints the menu, which includes       *
+;*     instructions for the game.            *
+;*                                           *
+;*                                           *
+;*********************************************
+proc DrawMenu
+pusha
+call clear
+call cursor0
+mov al, 0
+mov bl, 11
+mov cx, 2000 ; length
+mov ah, 9
+int 10h
+lea  si, Menu
+display1:
+mov  dl, [si]
+cmp  dl, '$'  ; checks if its the end of the string
+je   finale1
+cmp  dl, '-'  ; checks if its the char that needs to replaced
+jne  continue1
+mov  dl, 219  ; repalce the simple char with the special char (219)
+continue1:
+mov  ah, 2
+int  21h      ; display char in dl
+inc  si       ; moves on to next char in string
+jmp  display1
+finale1:
+popa
+ret
+endp menu
+
+;*********************************************
+;*                                           *
+;*        Prints the game instructions       *
+;*                                           *
+;*                                           *
+;*********************************************
+proc PrintInstructions
+pusha
+call clear
+call cursor0
+mov al, 0
+mov bl, 11
+mov cx, 2000 ; length
+mov ah, 9
+int 10h
+lea  si, Instructions
+display2:
+mov  dl, [si]
+cmp  dl, '$'  ; checks if its the end of the string
+je   finale2
+cmp  dl, '-'  ; checks if its the char that needs to replaced
+jne  continue2
+mov  dl, 219  ; repalce the simple char with the special char (219)
+continue2:
+mov  ah, 2
+int  21h      ; display char in dl
+inc  si       ; moves on to next char in string
+jmp  display2
+finale2:
+popa
+ret
+endp PrintInstructions
+
+;*********************************************
+;*      Place the cursor at:                 *
+;*      Row: 0, Column: 0                    *
+;*                                           *
+;*                                           *
+;*********************************************
+proc cursor0
+pusha
+mov dh, 0
+mov dl, 0
+mov ah, 2
+int 10h
+popa
+ret
+endp cursor0
+
+;*********************************************
+;*  Checks if the keystroke is 's' or 'S'    *
+;*  if it is, keeps on with the game.        *
+;*                                           *
+;*                                           *
+;*********************************************
+proc keystroke_check
+pusha
+KeystrokeS:
+xor al, al
+mov ah, 0
+int 16h
+s:
+cmp al, 73h
+jnz CapsS
+mov al, 53h
+CapsS:
+cmp al, 53h
+jnz KeystrokeI
+jmp Game
+KeystrokeI:
+i:
+cmp al, 69h
+jnz CapsI
+mov al, 49h
+CapsI:
+cmp al, 49h
+jnz KeystrokeM
+call PrintInstructions
+jmp KeystrokeS
+KeystrokeM:
+m:
+cmp al, 6Dh
+jnz CapsM
+mov al, 4Dh
+CapsM:
+cmp al, 4Dh
+jnz KeystrokeQ
+call drawmenu
+jmp KeystrokeS
+KeystrokeQ:
+q:
+cmp al, 71h
+jnz CapsQ
+mov al, 51h
+CapsQ:
+cmp al, 51h
+jz ExitToOP
+jmp KeystrokeS
+popa
+ret
+endp keystroke_check
+
+
+
+;*********************************************
+;*                                           *
+;*            Clears the screen              *
+;*                                           *
+;*                                           *
+;*********************************************
+proc clear
+pusha
+mov cx, 40
+xor dx, dx
+lop2:
+mov ah, 2
+int 10h
+mov al, ' '
+push cx
+mov cx, 100
+mov ah, 0Ah
+int 10h
+pop cx
+inc dh
+loop lop2
+popa
+ret
+endp clear
+
+;*********************************************
+;*                                           *
+;*        Draws the map of the maze          *
+;*                                           *
+;*                                           *
+;*********************************************
+proc drawmap
+pusha
+call clear
+call cursor0
+;setting a color to the map
+mov al, 0
+mov bl, 11
+mov cx, 1550 ; length
+mov ah, 9
+int 10h
+lea  si, maze
+display:
+mov  dl, [si]
+cmp  dl, '$'  ; checks if its the end of the string
+je   finale
+cmp  dl, '-'  ; checks if its the char that needs to replaced
+jne  continue
+mov  dl, 219  ; repalce the simple char with the special char (219)
+continue:
+mov  ah, 2
+int  21h      ; display char in dl
+inc  si       ; moves on to next char in string
+jmp  display
+finale:
+popa
+ret
+endp drawmap
+
+;*********************************************
+;*                                           *
+;*       Main procedure for moving           *
+;*       the character across the map        *
+;*                                           *
+;*********************************************
+proc move
+pusha
+mov dh, row               ;
+mov dl, column               ;
+mov ah, 2               ;
+int 10h                 ;
+call PrintCharacter     ; print character at the start of the maze
+
+mov ah, 0  ;gets keystroke
+int 16h
+
+Mcheck:
+cmp al, 6Dh
+jnz Wcheck
+jmp BackToMenu
+Wcheck:
+cmp al, 77h   ; checks if its 'w'
+jnz Acheck
+dec row
+mov dh, row
+mov al, ' '
+mov cx, 1
+mov ah, 0Ah
+int 10h
+mov ah, 2
+int 10h
+mov ah, 8
+int 10h
+cmp al, 45h     ;checks for the "END"
+jz win
+cmp al, 219
+jnz Wtrue
+call bump
+inc row
+mov dh, row
+mov ah, 2
+int 10h
+Wtrue:
+call PrintCharacter
+
+
+Acheck:
+cmp al, 61h   ;checks if its 'a'
+jnz Scheck
+dec column
+mov dl, column
+mov al, ' '
+mov cx, 1
+mov ah, 0Ah
+int 10h
+mov ah, 2
+int 10h
+mov ah, 8
+int 10h
+cmp al, 45h     ;checks for the "END"
+jz win
+cmp al, 219
+jnz Atrue
+call bump
+inc column
+mov dl, column
+mov ah, 2
+int 10h
+Atrue:
+call PrintCharacter
+
+
+Scheck:        ;checks if its 's'
+cmp al, 73h
+jnz Dcheck
+inc row
+mov dh, row
+mov al, ' '
+mov cx, 1
+mov ah, 0Ah
+int 10h
+mov ah, 2
+int 10h
+mov ah, 8
+int 10h
+cmp al, 45h     ;checks for the "END"
+jz win
+cmp al, 219
+jnz Strue
+call bump
+dec row
+mov dh, row
+mov ah, 2
+int 10h
+Strue:
+call PrintCharacter
+
+
+Dcheck:      ;checks if its 'd'
+cmp al, 64h
+jnz EndMoveCheck
+inc column
+mov dl, column
+mov al, ' '
+mov cx, 1
+mov ah, 0Ah
+int 10h
+mov ah, 2
+int 10h
+mov ah, 8
+int 10h
+cmp al, 45h     ;checks for the "END"
+jz win
+cmp al, 219
+jnz Dtrue
+call bump
+dec column
+mov dl, column
+mov ah, 2
+int 10h
+Dtrue:
+call PrintCharacter
+
+EndMoveCheck:
+
+popa
+ret
+endp move
+
+;*********************************************
+;*     Prints character at cursor location   *
+;*                                           *
+;*********************************************
+proc PrintCharacter
+pusha
+mov al, 01 ; a smiley in ascii
+mov bl, 10 ; light green attribute
+mov cx, 1 ; number of times to write character
+mov ah, 9
+int 10h
+popa
+ret
+endp PrintCharacter
+
+;*********************************************
+;*       Makes sure the player wants to      *
+;*       quit if he pressed Q at the start   *
+;*                                           *
+;*********************************************
+proc AreYouSure
+pusha
+call clear
+call cursor0
+lea dx, quitting   ;
+mov ah, 9          ;  print "are you sure you want to quit(y/n)?"
+int 21h            ;
+y_n:
+mov ah, 0
+int 16h
+cmp al, 79
+jz Sure
+cmp al, 6Eh
+jz start
+Sure:
+popa
+ret
+endp AreYouSure
+
+
+;*********************************************
+;*       after the player wins,              *
+;*       asks if he wants to get back to     *
+;*       menu or exit the game               *
+;*********************************************
+proc CheckAfterWin
+pusha
+GetStroke2:
+mov ah, 0
+int 16h
+Mcheck2:
+cmp al, 6Dh
+jnz Qcheck
+mov row, 1
+mov column, 1
+jmp BackToMenu
+Qcheck:
+cmp al, 71h
+jnz GetStroke2
+popa
+ret
+endp CheckAfterWin
+
+
+;*********************************************
+;*   If the character bumps into a wall,     *
+;*   paints the wall red for a really small  *
+;*   amount of time                          *
+;*********************************************
+proc bump
+pusha
+mov al, 219
+mov bl, 4
+mov cx, 1
+mov ah, 09h
+int 10h
+
+MOV ah,00h
+INT 1ah
+
+MOV tik, dx
+ADD tik, 1
+
+delay:
+mov ax, 00h
+int 1ah
+cmp tik, dx
+jge delay
+
+mov al, 219
+mov bl, 11
+mov cx, 1
+mov ah, 09h
+int 10h
+popa
+ret
+endp 1sec_red
+start:
+; set segment registers:
+mov ax, data
+mov ds, ax
+mov es, ax
+
+call textmode
+BackToMenu:
+call DrawMenu
+call keystroke_check
+Game:      ; starts game, prints character at the start of the maze
+
+call drawmap
+
+play:
+call move
+jmp play
+
+win:
+call clear
+call cursor0
+mov bl, 9        ;color
+mov cx, 300
+mov al, ' '
+mov ah, 9
+int 10h
+lea dx, winning
+mov ah, 9
+int 21h
+
+call CheckAfterWin
+
+mov ax, 4c00h ; exit to operating system.
+int 21h
+
+ExitToOP:
+call AreYouSure
+mov ax, 4c00h ; exit to operating system.
+int 21h
+ends
+
+end start ; set entry point and stop the assembler.
