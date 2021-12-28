@@ -1,4 +1,4 @@
-- 👋 Hi, I’m @zeptusg
+- 👋 Hi, I’m @zeptusg, my name is Daniel
 - 👀 I’m a highly motivated self-learner of computer science
 - 🌱 I’m currently learning Java DS & Algorithms
 - 💞️ I’m looking to contribute and learn
